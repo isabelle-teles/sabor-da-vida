@@ -1,0 +1,140 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hamburgueria & Açaiteria Sabor da Vida</title>
+  <meta name="description" content="Cardápio online da Hamburgueria & Açaiteria Sabor da Vida" />
+  <style>
+    :root{
+      --bg:#000000;
+      --card:#111111;
+      --accent:#FFD300; /* amarelo */
+      --accent2:#8A2BE2; /* roxo */
+      --muted:#bdbdbd;
+      --price:#D4AF37;
+    }
+    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:#fff;}
+    .wrap{max-width:980px; margin:0 auto; padding:22px;}
+    header{text-align:center; margin-bottom:10px;}
+    header h1{margin:6px 0; font-size:1.6rem; color:var(--accent);}
+    header p{margin:0; color:var(--muted);}
+    #cardapio-container{margin-top:18px;}
+    .categoria{margin:20px 0;}
+    .categoria h2{font-size:1.15rem; margin:0 0 8px 0; color:var(--accent); border-bottom:2px solid rgba(255,211,0,0.08); padding-bottom:8px;}
+    .item{display:block; background:var(--card); padding:12px; border-radius:10px; margin:10px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.6);}
+    .item-row{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+    .nome{font-weight:600; font-size:1rem; color:#fff;}
+    .descricao{margin-top:6px; color:var(--muted); font-size:0.9rem;}
+    .preco{font-weight:700; color:var(--price);}
+    .placeholder{text-align:center; color:var(--muted); padding:40px 0;}
+    /* WhatsApp floating button */
+    .whatsapp-btn{position:fixed; right:18px; bottom:18px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; border-radius:999px; padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 6px 20px rgba(0,0,0,0.4); text-decoration:none; font-weight:700;}
+    .whatsapp-btn svg{width:20px;height:20px;}
+    /* Mobile tweaks */
+    @media (max-width:600px){ .wrap{padding:14px} .item-row{flex-direction:column; align-items:flex-start} .preco{margin-top:6px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Hamburgueria & Açaiteria Sabor da Vida</h1>
+      <p>Cardápio atualizado direto da planilha</p>
+    </header>
+
+    <main id="cardapio-container">
+      <div class="placeholder">Carregando o cardápio…</div>
+    </main>
+
+    <footer style="text-align:center; margin-top:28px; color:var(--muted); font-size:0.9rem;">
+      Atualize os itens na sua planilha do Google Sheets para alterar este cardápio.
+    </footer>
+  </div>
+
+  <a class="whatsapp-btn" id="whatsBtn" href="https://wa.me/5579991005292?text=Ol%C3%A1%21%20Vim%20pelo%20card%C3%A1pio%20online%20e%20quero%20fazer%20um%20pedido%20%F0%9F%8D%94" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.52 3.48A11.94 11.94 0 0 0 12 .5C6.05.5 1.3 4.84.35 10.42c-.24 1.2-.28 2.36-.12 3.47L0 21l6.38-1.68c1.06.57 2.27.87 3.62.87 5.95 0 10.7-4.34 11.65-9.92.19-1.02.19-2.02.07-2.85-.1-.6-.29-1.23-.6-1.8z" fill="#fff" opacity="0.06"></path><path d="M20.52 3.48A11.94 11.94 0 0 0 12 .5C6.05.5 1.3 4.84.35 10.42c-.24 1.2-.28 2.36-.12 3.47L0 21l6.38-1.68c1.06.57 2.27.87 3.62.87 5.95 0 10.7-4.34 11.65-9.92.19-1.02.19-2.02.07-2.85-.1-.6-.29-1.23-.6-1.8z" fill="white"/></svg>
+    Pedir (WhatsApp)
+  </a>
+
+  <script>
+    const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT5uS0IfrMtePWwr_Utzh6o80lkbdL89eoIqtv-m4Tbq3U7kAVM4NYr6uyOZABT-A_iDzkdP5QDiCNm/pub?output=csv";
+    const container = document.getElementById('cardapio-container');
+
+    function formatPrice(raw){
+      const n = parseFloat(String(raw).replace(/[^0-9.,-]/g,'').replace(',', '.'));
+      if(isNaN(n)) return raw;
+      return 'R$ ' + n.toFixed(2).replace('.',',');
+    }
+
+    fetch(sheetCsvUrl)
+      .then(res => {
+        if(!res.ok) throw new Error('Erro ao acessar a planilha: ' + res.status);
+        return res.text();
+      })
+      .then(text => {
+        // Parse CSV (simple parser, assumes no embedded newlines inside fields)
+        const lines = text.trim().split('\n').map(l => l.replace(/^"|"$/g,''));
+        if(lines.length <= 1) throw new Error('Planilha vazia ou com cabeçalho inválido.');
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const idx = {
+          categoria: header.indexOf('categoria'),
+          nome: header.indexOf('nome'),
+          descricao: header.indexOf('descricao') !== -1 ? header.indexOf('descricao') : header.indexOf('descrição'),
+          preco: header.indexOf('preco') !== -1 ? header.indexOf('preco') : header.indexOf('preço')
+        };
+        if(idx.categoria < 0 || idx.nome < 0 || idx.preco < 0){
+          throw new Error('Cabeçalho inválido. As colunas esperadas são: categoria, nome, descricao, preco');
+        }
+
+        const data = [];
+        for(let i=1;i<lines.length;i++){
+          if(!lines[i].trim()) continue;
+          // split respecting quoted values
+          const parts = lines[i].match(/(".*?"|[^",]+)(?=,|$)/g).map(p => p.replace(/^"|"$/g,'').trim());
+          const row = {
+            categoria: parts[idx.categoria] || 'Sem categoria',
+            nome: parts[idx.nome] || '',
+            descricao: parts[idx.descricao] || '',
+            preco: parts[idx.preco] || ''
+          };
+          data.push(row);
+        }
+
+        if(data.length === 0) throw new Error('Nenhum item encontrado na planilha.');
+
+        // group by category
+        const groups = {};
+        data.forEach(item => {
+          const cat = item.categoria || 'Sem categoria';
+          if(!groups[cat]) groups[cat] = [];
+          groups[cat].push(item);
+        });
+
+        container.innerHTML = '';
+        for(const cat of Object.keys(groups)){
+          const divCat = document.createElement('div');
+          divCat.className = 'categoria';
+          const h2 = document.createElement('h2');
+          h2.textContent = cat;
+          divCat.appendChild(h2);
+
+          groups[cat].forEach(item => {
+            const divItem = document.createElement('div');
+            divItem.className = 'item';
+            divItem.innerHTML = '\n              <div class="item-row">\n                <div>\n                  <div class="nome">'+ escapeHtml(item.nome) +'</div>\n                  <div class="descricao">'+ escapeHtml(item.descricao) +'</div>\n                </div>\n                <div class="preco">'+ formatPrice(item.preco) +'</div>\n              </div>\n            ';
+            divCat.appendChild(divItem);
+          });
+
+          container.appendChild(divCat);
+        }
+      })
+      .catch(err => {
+        container.innerHTML = '<div class="placeholder">Erro ao carregar o cardápio: ' + err.message + '</div>';
+        console.error(err);
+      });
+
+    function escapeHtml(s){ return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  </script>
+</body>
+</html>
